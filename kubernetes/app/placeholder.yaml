@@ -1,0 +1,9 @@
+# This is a placeholder file for your future application
+# Replace this with your actual application manifests when ready
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: beauty-salon-placeholder
+  namespace: default
+data:
+  info: "Beauty Salon application will be deployed heree"
