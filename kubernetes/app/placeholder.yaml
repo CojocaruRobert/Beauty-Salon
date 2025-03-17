@@ -6,4 +6,4 @@ metadata:
   name: beauty-salon-placeholder
   namespace: default
 data:
-  info: "Beauty Salon application will be deployed here"
+  info: "Beauty Salon application will be deployed heree"
