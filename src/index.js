@@ -27,6 +27,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Beauty Salon API' });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'UP', message: 'API is running correctly' });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
