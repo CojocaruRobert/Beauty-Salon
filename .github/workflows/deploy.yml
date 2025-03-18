@@ -1,10 +1,12 @@
-name: Test SSH Connection
+name: Deploy to EC2
 
 on:
-  workflow_dispatch:  # Manual trigger only for testing
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # For manual triggers
 
 jobs:
-  test-ssh:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Setup SSH
@@ -12,8 +14,12 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Test SSH Connection
+      - name: Deploy to EC2
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-          ssh -v ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo SSH connection successful"
+          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+            cd ${{ secrets.DEPLOY_PATH }}
+            sudo chown -R ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} .
+            git pull origin main
+          "
