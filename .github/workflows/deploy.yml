@@ -1,12 +1,10 @@
-name: Sync Code to EC2
+name: Test SSH Connection
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only for testing
 
 jobs:
-  sync:
+  test-ssh:
     runs-on: ubuntu-latest
     steps:
       - name: Setup SSH
@@ -14,20 +12,8 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Setup known_hosts
-        run: ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Pull Latest Code on EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-          API_PATH: ${{ secrets.DEPLOY_PATH }}
+      - name: Test SSH Connection
         run: |
-          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
-            # Fix permissions if needed
-            sudo chown -R ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} ${{ secrets.DEPLOY_PATH }}
-            
-            # Pull the latest code
-            cd ${{ secrets.DEPLOY_PATH }}
-            git pull origin main
-          "
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh -v ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo SSH connection successful"
