@@ -6,6 +6,15 @@ The backend API for the Katy Regal Beauty Salon application, built with Node.js,
 
 This RESTful API provides data and business logic for the Katy Regal Beauty Salon application. It handles user authentication, service management, appointment scheduling, and more. The API has been fully developed with comprehensive role-based authentication and service management endpoints.
 
+## Recent Updates
+
+### Authentication Improvements
+- Enhanced token generation and delivery
+- Improved authentication response format
+- Better error handling for login and registration
+- More consistent response structure
+- Performance optimizations for authentication routes
+
 ## Features
 
 - **User Authentication** - JWT-based auth with role-based permissions

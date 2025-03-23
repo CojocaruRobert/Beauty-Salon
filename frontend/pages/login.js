@@ -1,9 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useDispatch, useSelector } from 'react-redux';
-import { login, selectAuthStatus, selectAuthError, selectIsAuthenticated, clearError } from '../store/authSlice';
+import { login, selectAuthStatus, selectAuthError, selectIsAuthenticated, clearError, restoreAuthState } from '../store/authSlice';
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import { 
+  Container, 
+  Box, 
+  Typography, 
+  TextField, 
+  Button, 
+  CircularProgress, 
+  Alert, 
+  Paper,
+  Divider,
+  InputAdornment,
+  IconButton
+} from '@mui/material';
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+
+// ClientOnly component to prevent hydration errors
+const ClientOnly = ({ children }) => {
+  const [hasMounted, setHasMounted] = useState(false);
+  
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
+  if (!hasMounted) {
+    return null;
+  }
+  
+  return <>{children}</>;
+};
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -11,22 +43,59 @@ export default function Login() {
     password: '',
   });
   const [formErrors, setFormErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [redirectTriggered, setRedirectTriggered] = useState(false);
   
   const dispatch = useDispatch();
   const router = useRouter();
   const authStatus = useSelector(selectAuthStatus);
   const authError = useSelector(selectAuthError);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   
-  // Redirect if already authenticated
+  // Restore auth state and redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/');
+    if (typeof window !== 'undefined') {
+      dispatch(restoreAuthState());
+      
+      // Clear any previous errors when component mounts
+      dispatch(clearError());
     }
-    
-    // Clear any previous errors when component mounts
-    dispatch(clearError());
-  }, [isAuthenticated, router, dispatch]);
+  }, [dispatch]);
+  
+  // Handle successful login and redirect
+  useEffect(() => {
+    if (isLoggingIn && authStatus === 'succeeded' && isAuthenticated && user && !redirectTriggered) {
+      setRedirectTriggered(true);
+      
+      // Add a small delay to ensure state is properly updated
+      setTimeout(() => {
+        try {
+          router.push('/profile');
+        } catch (err) {
+          console.error('Error during redirect:', err);
+        }
+      }, 500);
+    }
+  }, [authStatus, isAuthenticated, user, router, isLoggingIn, redirectTriggered]);
+  
+  // Handle already authenticated user
+  useEffect(() => {
+    if (!isLoggingIn && isAuthenticated && user && !redirectTriggered) {
+      setRedirectTriggered(true);
+      
+      // Add a small delay to ensure state is properly updated
+      setTimeout(() => {
+        try {
+          router.push('/profile');
+        } catch (err) {
+          console.error('Error during redirect for already authenticated user:', err);
+        }
+      }, 500);
+    }
+  }, [isAuthenticated, user, router, isLoggingIn, redirectTriggered]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,6 +111,10 @@ export default function Login() {
         [name]: '',
       });
     }
+  };
+  
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
   };
   
   const validateForm = () => {
@@ -67,111 +140,180 @@ export default function Login() {
     e.preventDefault();
     
     if (validateForm()) {
+      setIsLoggingIn(true);
+      setRedirectTriggered(false); // Reset redirect flag on new login attempt
       dispatch(login(formData));
     }
   };
   
   return (
-    <Layout title="Login">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="px-6 py-8">
-            <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Login</h1>
+    <Layout title="Login | Katy Regal Beauty Salon">
+      <Container maxWidth="sm" sx={{ py: 8 }}>
+        <Paper elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <Box 
+            sx={{ 
+              p: 4, 
+              display: 'flex', 
+              flexDirection: 'column' 
+            }}
+          >
+            <Typography variant="h4" component="h1" align="center" gutterBottom fontWeight="bold">
+              Sign In
+            </Typography>
+            <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 4 }}>
+              Welcome back! Please enter your details below.
+            </Typography>
             
-            {authError && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                <p>{authError}</p>
-              </div>
-            )}
+            <ClientOnly>
+              {authError && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {authError}
+                </Alert>
+              )}
+            </ClientOnly>
             
             <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${
-                    formErrors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="you@example.com"
-                />
-                {formErrors.email && (
-                  <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
+              <TextField
+                fullWidth
+                id="email"
+                name="email"
+                label="Email Address"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={!!formErrors.email}
+                helperText={formErrors.email}
+                margin="normal"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              
+              <TextField
+                fullWidth
+                id="password"
+                name="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
+                error={!!formErrors.password}
+                helperText={formErrors.password}
+                margin="normal"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={toggleShowPassword}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              
+              <Box sx={{ textAlign: 'right', mt: 1, mb: 3 }}>
+                <Link href="/forgot-password" passHref>
+                  <Typography 
+                    component="a" 
+                    variant="body2" 
+                    color="primary" 
+                    sx={{ textDecoration: 'none', fontWeight: 'medium' }}
+                  >
+                    Forgot password?
+                  </Typography>
+                </Link>
+              </Box>
+              
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={authStatus === 'loading'}
+                sx={{ 
+                  py: 1.5,
+                  mb: 3,
+                  borderRadius: 1,
+                }}
+              >
+                {authStatus === 'loading' ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Sign In'
                 )}
-              </div>
+              </Button>
               
-              <div className="mb-6">
-                <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${
-                    formErrors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="••••••••"
-                />
-                {formErrors.password && (
-                  <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>
-                )}
-              </div>
+              <Divider sx={{ my: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  OR
+                </Typography>
+              </Divider>
               
-              <div className="mb-6">
-                <button
-                  type="submit"
-                  className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-md hover:bg-pink-700 transition focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50"
-                  disabled={authStatus === 'loading'}
-                >
-                  {authStatus === 'loading' ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Signing in...
-                    </span>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
-              </div>
-              
-              <div className="text-center text-sm">
-                <p className="text-gray-600">
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
                   Don't have an account?{' '}
-                  <Link href="/register">
-                    <a className="text-pink-600 hover:text-pink-800 font-semibold">
-                      Register
-                    </a>
+                  <Link href="/register" passHref>
+                    <Typography 
+                      component="a" 
+                      variant="body2" 
+                      color="primary" 
+                      sx={{ 
+                        textDecoration: 'none', 
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          textDecoration: 'underline'
+                        }
+                      }}
+                    >
+                      Sign up
+                    </Typography>
                   </Link>
-                </p>
-              </div>
+                </Typography>
+              </Box>
             </form>
-          </div>
+          </Box>
           
-          <div className="px-6 py-4 bg-gray-50 border-t">
-            <p className="text-xs text-gray-600 text-center">
-              By logging in, you agree to our{' '}
-              <a href="#" className="text-pink-600 hover:text-pink-800">
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-pink-600 hover:text-pink-800">
-                Privacy Policy
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
+          <Box sx={{ bgcolor: 'grey.50', p: 3, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" align="center" display="block">
+              By signing in, you agree to our{' '}
+              <Link href="/terms" passHref>
+                <Typography 
+                  component="a" 
+                  variant="caption" 
+                  color="primary"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  Terms of Service
+                </Typography>
+              </Link>
+              {' '}and{' '}
+              <Link href="/privacy" passHref>
+                <Typography 
+                  component="a" 
+                  variant="caption" 
+                  color="primary"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  Privacy Policy
+                </Typography>
+              </Link>
+            </Typography>
+          </Box>
+        </Paper>
+      </Container>
     </Layout>
   );
 } 

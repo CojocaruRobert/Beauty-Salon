@@ -6,6 +6,21 @@ The client-side application for Katy Regal Beauty Salon, built with Next.js and 
 
 This frontend application provides a beautiful and responsive interface for customers to browse services, create accounts, and book appointments at Katy Regal Beauty Salon. It connects to the backend API to fetch and store data.
 
+## Recent Updates
+
+### Authentication Improvements
+- Fixed login and registration redirect issues
+- Enhanced token handling and local storage management
+- Improved error handling for authentication processes
+- Added robust authentication state restoration
+- Better protection for authenticated routes
+
+### UI Enhancements
+- Fixed profile menu positioning and styling
+- Improved menu item layout and appearance
+- Enhanced Navbar responsiveness and interaction
+- Fixed mobile menu display
+
 ## Features
 
 - **Responsive Design** - Looks great on mobile, tablet, and desktop
