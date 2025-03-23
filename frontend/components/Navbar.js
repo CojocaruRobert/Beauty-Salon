@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout, selectIsAuthenticated, selectUser, selectIsAdmin } from '../store/authSlice';
+import { logout, selectIsAuthenticated, selectUser, selectIsAdmin, restoreAuthState } from '../store/authSlice';
 import { 
   AppBar, 
   Box, 
@@ -26,6 +26,21 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
+// ClientOnly component to prevent hydration errors
+const ClientOnly = ({ children }) => {
+  const [hasMounted, setHasMounted] = useState(false);
+  
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
+  if (!hasMounted) {
+    return null;
+  }
+  
+  return <>{children}</>;
+};
+
 const Navbar = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -36,6 +51,13 @@ const Navbar = () => {
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Restore auth state on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      dispatch(restoreAuthState());
+    }
+  }, [dispatch]);
 
   // Main navigation pages
   const pages = [
@@ -98,6 +120,123 @@ const Navbar = () => {
       .join('')
       .toUpperCase();
   };
+
+  const AuthSection = () => (
+    <Box sx={{ flexGrow: 0, position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
+      {isAuthenticated && user ? (
+        <Box sx={{ position: 'relative' }}>
+          <IconButton 
+            onClick={handleOpenUserMenu} 
+            sx={{ 
+              p: 0,
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.04)'
+              }
+            }}
+            aria-label="account settings"
+            aria-controls="menu-appbar"
+            aria-haspopup="true"
+          >
+            <Avatar sx={{ bgcolor: 'primary.main' }}>
+              {getUserInitials()}
+            </Avatar>
+          </IconButton>
+          <Menu
+            sx={{ 
+              mt: '45px',
+              '& .MuiPaper-root': {
+                width: '200px',
+                maxWidth: '200px',
+                borderRadius: 1,
+                boxShadow: '0px 5px 15px rgba(0, 0, 0, 0.1)',
+                right: 0,
+                left: 'auto',
+                marginRight: 0
+              }
+            }}
+            id="menu-appbar"
+            anchorEl={anchorElUser}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorElUser)}
+            onClose={handleCloseUserMenu}
+            disableScrollLock={true}
+            MenuListProps={{
+              sx: { width: '100%', padding: 0 }
+            }}
+            slotProps={{
+              paper: {
+                elevation: 3,
+                sx: {
+                  overflow: 'visible',
+                  filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.1))',
+                  position: 'absolute',
+                  right: 0,
+                  left: 'auto !important'
+                }
+              }
+            }}
+          >
+            {userMenuItems.map((item) => (
+              <MenuItem 
+                key={item.title} 
+                component={Link}
+                href={item.path}
+                onClick={handleCloseUserMenu}
+                sx={{ 
+                  width: '100%', 
+                  py: 1.5,
+                  px: 2
+                }}
+              >
+                <Typography textAlign="center" sx={{ width: '100%' }}>{item.title}</Typography>
+              </MenuItem>
+            ))}
+            <MenuItem 
+              onClick={handleLogout}
+              sx={{ 
+                width: '100%', 
+                py: 1.5,
+                px: 2,
+                borderTop: '1px solid rgba(0,0,0,0.08)'
+              }}
+            >
+              <Typography textAlign="center" sx={{ width: '100%' }}>Logout</Typography>
+            </MenuItem>
+          </Menu>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex' }}>
+          <Button 
+            component={Link} 
+            href="/login" 
+            variant="text" 
+            color="primary"
+            startIcon={<LoginIcon />}
+            sx={{ mr: 1 }}
+          >
+            Login
+          </Button>
+          <Button 
+            component={Link} 
+            href="/register" 
+            variant="contained" 
+            color="primary"
+            startIcon={<PersonAddIcon />}
+          >
+            Register
+          </Button>
+        </Box>
+      )}
+    </Box>
+  );
 
   return (
     <AppBar position="sticky" sx={{ bgcolor: 'white', color: 'text.primary', boxShadow: 1 }}>
@@ -219,72 +358,10 @@ const Navbar = () => {
             ))}
           </Box>
 
-          {/* User menu */}
-          <Box sx={{ flexGrow: 0 }}>
-            {isAuthenticated ? (
-              <>
-                <Tooltip title="Open settings">
-                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      {getUserInitials()}
-                    </Avatar>
-                  </IconButton>
-                </Tooltip>
-                <Menu
-                  sx={{ mt: '45px' }}
-                  id="menu-appbar"
-                  anchorEl={anchorElUser}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={Boolean(anchorElUser)}
-                  onClose={handleCloseUserMenu}
-                >
-                  {userMenuItems.map((item) => (
-                    <MenuItem 
-                      key={item.title} 
-                      component={Link}
-                      href={item.path}
-                      onClick={handleCloseUserMenu}
-                    >
-                      <Typography textAlign="center">{item.title}</Typography>
-                    </MenuItem>
-                  ))}
-                  <MenuItem onClick={handleLogout}>
-                    <Typography textAlign="center">Logout</Typography>
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <Box sx={{ display: 'flex' }}>
-                <Button 
-                  component={Link} 
-                  href="/login" 
-                  variant="text" 
-                  color="primary"
-                  startIcon={<LoginIcon />}
-                  sx={{ mr: 1 }}
-                >
-                  Login
-                </Button>
-                <Button 
-                  component={Link} 
-                  href="/register" 
-                  variant="contained" 
-                  color="primary"
-                  startIcon={<PersonAddIcon />}
-                >
-                  Register
-                </Button>
-              </Box>
-            )}
-          </Box>
+          {/* User menu - wrap in ClientOnly to prevent hydration errors */}
+          <ClientOnly>
+            <AuthSection />
+          </ClientOnly>
         </Toolbar>
       </Container>
     </AppBar>
