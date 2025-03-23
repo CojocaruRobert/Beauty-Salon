@@ -3,12 +3,11 @@ node_modules/
 npm-debug.log
 yarn-error.log
 yarn-debug.log
+package-lock.json
 
-# Terraform
-terraform/
-
-# Documentation
-Roadmap.odt
+# Next.js build files
+.next/
+out/
 
 # Environment variables
 .env
@@ -16,14 +15,6 @@ Roadmap.odt
 .env.development.local
 .env.test.local
 .env.production.local
-
-# Build files
-dist/
-build/
-
-# Next.js build files
-.next/
-out/
 
 # Logs
 logs
@@ -42,4 +33,4 @@ Thumbs.db
 # Misc
 .coverage
 .nyc_output
-coverage/
+coverage/ 
